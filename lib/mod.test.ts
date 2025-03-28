@@ -12,7 +12,7 @@ Deno.test({
 
 			// deno-fmt-ignore
 			writer.write(
-				new Uint8Array([
+				Uint8Array.from([
 					31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 242, 72, 205, 201, 201, 215, 81,
 					40, 207, 47, 202, 73, 81, 4, 0, 0, 0, 255, 255, 3, 0, 230, 198, 230, 
 					235, 13, 0, 0, 0,
@@ -23,15 +23,8 @@ Deno.test({
 		}
 
 		{
-			let buffer = new Uint8Array(0);
-			for await (const chunk of readable) {
-				const concat = new Uint8Array(buffer.length + chunk.length);
-				concat.set(buffer);
-				concat.set(chunk, buffer.length);
-				buffer = concat;
-			}
-
-			const decoded = new TextDecoder().decode(buffer);
+			const result = await toUint8Array(readable);
+			const decoded = new TextDecoder().decode(result);
 
 			assertEquals(decoded, 'Hello, world!');
 		}
@@ -43,7 +36,7 @@ Deno.test({
 	async fn() {
 		const { readable, writable } = new MaybeDecompressionStream();
 
-		const input = new Uint8Array([1, 2, 3, 4, 5]);
+		const input = Uint8Array.from([1, 2, 3, 4, 5]);
 
 		{
 			const writer = writable.getWriter();
@@ -52,15 +45,25 @@ Deno.test({
 		}
 
 		{
-			let buffer = new Uint8Array(0);
-			for await (const chunk of readable) {
-				const concat = new Uint8Array(buffer.length + chunk.length);
-				concat.set(buffer);
-				concat.set(chunk, buffer.length);
-				buffer = concat;
-			}
-
-			assertEquals(buffer, input);
+			const result = await toUint8Array(readable);
+			assertEquals(result, input);
 		}
 	},
 });
+
+async function toUint8Array(source: AsyncIterable<Uint8Array>): Promise<Uint8Array> {
+	let buffer: Uint8Array | undefined;
+
+	for await (const value of source) {
+		if (buffer === undefined) {
+			buffer = value;
+		} else {
+			const concat = new Uint8Array(buffer.length + value.length);
+			concat.set(buffer);
+			concat.set(value, buffer.length);
+			buffer = concat;
+		}
+	}
+
+	return buffer ?? new Uint8Array(0);
+}
