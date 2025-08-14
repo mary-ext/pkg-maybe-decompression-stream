@@ -1,5 +1,7 @@
 # maybe-decompression-stream
 
+[JSR](https://jsr.io/@mary/maybe-decompression-stream) | [source code](https://tangled.sh/mary.my.id/pkg-maybe-decompression-stream)
+
 decompresses a stream of data if it is compressed with gzip, otherwise it passes the data through.
 
 ```ts
